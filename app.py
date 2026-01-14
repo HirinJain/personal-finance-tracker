@@ -1,55 +1,73 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+from datetime import date
 
 st.set_page_config(page_title="Personal Finance Tracker", layout="centered")
-
 st.title("💰 Personal Finance Tracker")
 
-# Load data
-df = pd.read_csv("finance_data.csv")
+CSV_FILE = "finance_data.csv"
 
-# Ensure correct column order
-df = df[["Date", "Amount", "Category", "Description"]]
+# Load data safely
+def load_data():
+    df = pd.read_csv(CSV_FILE)
+    df = df[["Date", "Amount", "Category", "Description"]]
+    df["Date"] = pd.to_datetime(df["Date"], errors="coerce", dayfirst=True)
+    df = df.dropna(subset=["Date"])
+    return df
 
-# Fix Date parsing
-df["Date"] = pd.to_datetime(
-    df["Date"],
-    errors="coerce",
-    dayfirst=True
+def save_data(df):
+    df.to_csv(CSV_FILE, index=False)
+
+df = load_data()
+
+# SIDEBAR MENU
+menu = st.sidebar.radio(
+    "Menu",
+    ["Dashboard", "Add Transaction", "View Data"]
 )
-df = df.dropna(subset=["Date"])
 
+# DASHBOARD
+if menu == "Dashboard":
+    income = df[df["Amount"] > 0]["Amount"].sum()
+    expense = df[df["Amount"] < 0]["Amount"].sum()
+    balance = income + expense
 
-st.subheader("📊 All Transactions")
-st.dataframe(df)
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Income", f"₹{income:.2f}")
+    col2.metric("Expense", f"₹{abs(expense):.2f}")
+    col3.metric("Balance", f"₹{balance:.2f}")
 
-# Summary metrics
-income = df[df["Amount"] > 0]["Amount"].sum()
-expense = df[df["Amount"] < 0]["Amount"].sum()
+    st.subheader("🧾 Expense Breakdown")
+    expense_df = df[df["Amount"] < 0]
+    if not expense_df.empty:
+        fig, ax = plt.subplots()
+        expense_df.groupby("Category")["Amount"].sum().abs().plot(
+            kind="pie", autopct="%1.1f%%", ax=ax
+        )
+        st.pyplot(fig)
 
-col1, col2 = st.columns(2)
-col1.metric("Total Income", f"₹ {income}")
-col2.metric("Total Expense", f"₹ {abs(expense)}")
+# ADD TRANSACTION
+elif menu == "Add Transaction":
+    st.subheader("➕ Add New Transaction")
 
-st.metric("Net Balance", f"₹ {income + expense}")
+    t_date = st.date_input("Date", date.today())
+    amount = st.number_input("Amount (use negative for expense)", value=0.0)
+    category = st.text_input("Category")
+    description = st.text_input("Description")
 
-# Expense breakdown
-st.subheader("🧾 Expense Breakdown by Category")
-expense_df = df[df["Amount"] < 0]
+    if st.button("Add Transaction"):
+        new_row = pd.DataFrame([{
+            "Date": t_date,
+            "Amount": amount,
+            "Category": category,
+            "Description": description
+        }])
+        df = pd.concat([df, new_row], ignore_index=True)
+        save_data(df)
+        st.success("Transaction added successfully!")
 
-if not expense_df.empty:
-    fig, ax = plt.subplots()
-    expense_df.groupby("Category")["Amount"].sum().abs().plot(
-        kind="pie", autopct="%1.1f%%", ax=ax
-    )
-    st.pyplot(fig)
-else:
-    st.info("No expense data available")
-
-# Monthly trend
-st.subheader("📈 Monthly Expense Trend")
-monthly = df[df["Amount"] < 0].groupby(df["Date"].dt.to_period("M"))["Amount"].sum()
-
-if not monthly.empty:
-    st.line_chart(monthly.abs())
+# VIEW DATA
+elif menu == "View Data":
+    st.subheader("📊 All Transactions")
+    st.dataframe(df, use_container_width=True)
