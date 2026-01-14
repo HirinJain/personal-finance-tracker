@@ -51,21 +51,26 @@ if menu == "Dashboard":
 elif menu == "Add Transaction":
     st.subheader("➕ Add New Transaction")
 
-    t_date = st.date_input("Date", date.today())
-    amount = st.number_input("Amount (use negative for expense)", value=0.0)
+    t_date = st.date_input("Date")
+    txn_type = st.selectbox("Transaction Type", ["Income", "Expense"])
+    amount = st.number_input("Amount", min_value=0.0, step=1.0)
     category = st.text_input("Category")
     description = st.text_input("Description")
 
     if st.button("Add Transaction"):
+        final_amount = amount if txn_type == "Income" else -amount
+
         new_row = pd.DataFrame([{
             "Date": t_date,
-            "Amount": amount,
+            "Amount": final_amount,
             "Category": category,
             "Description": description
         }])
+
         df = pd.concat([df, new_row], ignore_index=True)
         save_data(df)
-        st.success("Transaction added successfully!")
+        st.success(f"{txn_type} added successfully!")
+
 
 # VIEW DATA
 elif menu == "View Data":
