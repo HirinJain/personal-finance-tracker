@@ -9,8 +9,17 @@ st.title("💰 Personal Finance Tracker")
 # Load data
 df = pd.read_csv("finance_data.csv")
 
-# Convert Date column
-df["Date"] = pd.to_datetime(df["Date"])
+# Ensure correct column order
+df = df[["Date", "Amount", "Category", "Description"]]
+
+# Fix Date parsing
+df["Date"] = pd.to_datetime(
+    df["Date"],
+    errors="coerce",
+    dayfirst=True
+)
+df = df.dropna(subset=["Date"])
+
 
 st.subheader("📊 All Transactions")
 st.dataframe(df)
