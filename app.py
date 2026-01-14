@@ -51,25 +51,33 @@ if menu == "Dashboard":
 elif menu == "Add Transaction":
     st.subheader("➕ Add New Transaction")
 
-    t_date = st.date_input("Date")
-    txn_type = st.selectbox("Transaction Type", ["Income", "Expense"])
-    amount = st.number_input("Amount", min_value=0.0, step=1.0)
-    category = st.text_input("Category")
-    description = st.text_input("Description")
+    with st.form("transaction_form", clear_on_submit=True):
+        t_date = st.date_input("Date")
+        txn_type = st.selectbox("Transaction Type", ["Income", "Expense"])
+        amount = st.number_input("Amount", min_value=0.01, step=1.0)
+        category = st.text_input("Category")
+        description = st.text_input("Description")
 
-    if st.button("Add Transaction"):
-        final_amount = amount if txn_type == "Income" else -amount
+        submitted = st.form_submit_button("Add Transaction")
 
-        new_row = pd.DataFrame([{
-            "Date": t_date,
-            "Amount": final_amount,
-            "Category": category,
-            "Description": description
-        }])
+        if submitted:
+            if category.strip() == "":
+                st.error("Category cannot be empty")
+            else:
+                final_amount = amount if txn_type == "Income" else -amount
 
-        df = pd.concat([df, new_row], ignore_index=True)
-        save_data(df)
-        st.success(f"{txn_type} added successfully!")
+                new_row = pd.DataFrame([{
+                    "Date": t_date,
+                    "Amount": final_amount,
+                    "Category": category,
+                    "Description": description
+                }])
+
+                df = pd.concat([df, new_row], ignore_index=True)
+                save_data(df)
+
+                st.success(f"{txn_type} added successfully!")
+
 
 
 # VIEW DATA
