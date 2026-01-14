@@ -2,13 +2,13 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import date
-
-st.set_page_config(page_title="Personal Finance Tracker", layout="centered")
-st.title("💰 Personal Finance Tracker")
+import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
+from datetime import date
 
 CSV_FILE = "finance_data.csv"
 
-# Load data safely
 def load_data():
     df = pd.read_csv(CSV_FILE)
     df = df[["Date", "Amount", "Category", "Description"]]
@@ -19,7 +19,17 @@ def load_data():
 def save_data(df):
     df.to_csv(CSV_FILE, index=False)
 
-df = load_data()
+# ✅ INIT SESSION STATE (ONLY ONCE)
+if "df" not in st.session_state:
+    st.session_state.df = load_data()
+
+# ✅ USE SESSION DATA
+df = st.session_state.df
+
+def save_data(df):
+    df.to_csv(CSV_FILE, index=False)
+
+
 
 # SIDEBAR MENU
 menu = st.sidebar.radio(
@@ -73,8 +83,8 @@ elif menu == "Add Transaction":
                     "Description": description
                 }])
 
-                df = pd.concat([df, new_row], ignore_index=True)
-                save_data(df)
+                st.session_state.df = pd.concat([st.session_state.df, new_row], ignore_index=True)
+                save_data(st.session_state.df)
 
                 st.success(f"{txn_type} added successfully!")
 
@@ -83,4 +93,4 @@ elif menu == "Add Transaction":
 # VIEW DATA
 elif menu == "View Data":
     st.subheader("📊 All Transactions")
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(st.session_state.df, use_container_width=True)
